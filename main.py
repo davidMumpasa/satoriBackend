@@ -1,23 +1,28 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from models.user import db
 from flask_bcrypt import Bcrypt
-from models.user import UserModel, db
+from flask_sqlalchemy import SQLAlchemy
+from businesslogic import storeUser
+from models.user import UserModel,db
 
 app = Flask(__name__)
 CORS(app, supports_credentials=True)
 
+app = Flask(__name__)
+CORS(app, supports_credentials=True)
+# logging.basicConfig(filename='app.log', level=logging.DEBUG)
+
 app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root:DavidEbula1999@localhost:3306/taskpro'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['BCRYPT_LOG_ROUNDS'] = 12
+app.config['JWT_SECRET_KEY'] = 'your-secret-key'
 
-bcrypt = Bcrypt(app)
 db.init_app(app)
+bcrypt = Bcrypt(app)
 
 with app.app_context():
     db.create_all()
 
-from businesslogic import storeUser  # Updated import statement
+
 
 @app.route('/login', methods=['POST'])
 def login():

@@ -26,7 +26,7 @@ def storeUser():
 
             existing_user = UserModel.query.filter_by(email=data['email']).first()
             if existing_user:
-                raise RecursionError('You have Already Registered')
+                raise RecursionError('Email Already Registered')
             password = password.strip() 
 
             # Check password strength

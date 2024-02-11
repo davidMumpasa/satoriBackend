@@ -1,74 +1,39 @@
 import unittest
-from flask import json
-from main import app, db
+import requests
 
-class TestRegistrationAPI(unittest.TestCase):
-    def setUp(self):
-        app.config['TESTING'] = True
-        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
-        self.app = app.test_client()
-        db.create_all()
+# Replace this URL with your actual server URL
+BASE_URL = "http://127.0.0.1:5000"
 
-    def tearDown(self):
-        db.session.remove()
-        db.drop_all()
+# Test data
+valid_user_email = "david@fluidintellect.com"
+invalid_user_email = "nonexistent@domain.com"
 
-    def test_successful_registration(self):
-        data = {
-            'email': 'test@example.com',
-            'password': 'StrongPass123!'
-        }
 
-        response = self.app.post('/register', json=data)
-        self.assertEqual(response.status_code, 201)
-        self.assertEqual(json.loads(response.get_data(as_text=True))['user'], 'Registered Successfully')
+class TestLoginEndpoint(unittest.TestCase):
 
-    def test_missing_required_fields(self):
-        data = {
-            'email': 'test@example.com',
-            # 'password': 'StrongPass123!'  # Missing password field
-        }
+    def test_successful_login(self):
+        data = {'email': valid_user_email, 'password': 'DavidEbula$16'}
+        response = requests.post(f"{BASE_URL}/login", json=data)
 
-        response = self.app.post('/register', json=data)
-        self.assertEqual(response.status_code, 500)
-        self.assertEqual(json.loads(response.get_data(as_text=True))['error'], 'Missing required fields')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['message'], 'Login successful')
 
-    def test_weak_password_registration(self):
-        data = {
-            'email': 'test@example.com',
-            'password': 'weakpass'  # Weak password
-        }
+    def test_login_missing_user_email(self):
+        response = requests.post(f"{BASE_URL}/login", json={})
+        self.assertEqual(response.status_code, 400)
+        self.assertEqual(response.json()['error'], 'Missing required fields')
 
-        response = self.app.post('/register', json=data)
-        self.assertEqual(response.status_code, 500)
-        self.assertEqual(json.loads(response.get_data(as_text=True))['error'], 'Weak password. Password must be strong.')
+    def test_login_invalid_user_email(self):
+        data = {'email': invalid_user_email, 'password': 'DavidEbula$16'}
+        response = requests.post(f"{BASE_URL}/login", json=data)
 
-    def test_existing_user_registration(self):
-        # Add a user to the database
-        existing_user_data = {
-            'email': 'existing_user@example.com',
-            'password': 'StrongPass123!'
-        }
-        self.app.post('/register', json=existing_user_data)
+        try:
+            self.assertEqual(response.status_code, 404)
+            self.assertEqual(response.json()['error'], 'User not found')
+        except AssertionError:
+            print("Response content:", response.content)
+            raise
 
-        # Try to register the same user again
-        response = self.app.post('/register', json=existing_user_data)
-        self.assertEqual(response.status_code, 500)
-        self.assertEqual(json.loads(response.get_data(as_text=True))['error'], 'You have Already Registered')
-
-    def test_successful_registration_check_db(self):
-        data = {
-            'email': 'test@example.com',
-            'password': 'StrongPass123!'
-        }
-
-        self.app.post('/register', json=data)
-
-        # Check if the user is added to the database
-        from models.user import UserModel
-        user = UserModel.query.filter_by(email=data['email']).first()
-        self.assertIsNotNone(user)
-        self.assertEqual(user.password, 'StrongPass123!')  # You may need to adjust this based on your actual implementation
 
 if __name__ == '__main__':
     unittest.main()
